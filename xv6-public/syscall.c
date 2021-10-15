@@ -105,10 +105,6 @@ extern int sys_write(void);
 extern int sys_uptime(void);
 extern int sys_setpr(void);
 extern int sys_getpr(void);
-//Lab 3 Additions
-extern int sys_cps(void);
-extern int sys_chpr(void);
-
 
 static int (*syscalls[])(void) = {
 [SYS_fork]    sys_fork,
@@ -134,8 +130,6 @@ static int (*syscalls[])(void) = {
 [SYS_close]   sys_close,
 [SYS_setpr]   sys_setpr,
 [SYS_getpr]   sys_getpr,
-[SYS_cps]     sys_cps,
-[SYS_chpr]    sys_chpr,
 };
 
 static char call_tags[][6] = {
