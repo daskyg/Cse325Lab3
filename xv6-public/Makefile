@@ -166,7 +166,6 @@ mkfs: mkfs.c fs.h
 .PRECIOUS: %.o
 
 UPROGS=\
-	_lab2test\
 	_ps\
         _lab3test\
         _nice\

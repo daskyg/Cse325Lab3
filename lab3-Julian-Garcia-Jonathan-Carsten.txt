@@ -1,0 +1,287 @@
+Lab Methods:
+Task1 & Task 2:
+Added two system calls to syscall.h:
+#define SYS_ps    24
+#define SYS_nice   25
+
+In the struct proc in the proc.h file, add a new attribute ‘priority’, to represent nice number.
+Added sys calls to defs.h and user.h
+//Inside proc.c
+int		ps(void);
+int 		nice(int pid, int priority);
+
+//Inside the system calls section in users.h
+int ps(void);
+int nice(int pid, int priority);
+
+Included the definition of the cps and chpr functions in proc.c
+
+In sysproc.c, defined  a function in which our cps and chpr functions will be called:
+int sys_ps(void)
+{
+  return ps();
+}
+
+int sys_nice(void)
+{
+  int pid, pr;
+  if(argint(0, &pid) < 0)
+    return -1;
+  if(argint(1, &pr) < 0)
+    return -1;
+
+  return nice(pid, pr);
+}
+
+Added changes in the usys.S file:
+SYSCALL(ps)
+SYSCALL(nice)
+
+Add the two system calls to sysproc.c:
+//This is where other system calls are defined in syscall.c
+extern int sys_ps(void);
+extern int sys_nice(void);
+
+//This is inside static int (*syscalls[])(void)
+[SYS_ps]     sys_ps,
+[SYS_nice]    sys_nice,
+
+Edited  the allocproc function in proc.c, to assign default priority:
+
+found:
+  p->state = EMBRYO;
+  p->pid = nextpid++;
+  p->priority = 10;  //Default Priority of a process is set to be 10
+
+
+Next, we created the ps.c and nice.c file in which our cps and chpr functions are called
+
+Made changes to makefile, added following under UPROGS section
+_ps\ 
+_lab3test\ 
+_nice\
+
+Task 3:
+Modified lab3Test.c
+
+
+Task 4:
+To accomplish the functionality of this section the scheduler function in proc.c will be replaced with the one below for priority round robin scheduling
+
+void
+scheduler(void)
+{
+  struct proc *p, *p1;
+  struct cpu *c = mycpu();
+  c->proc = 0;
+  
+  for(;;){
+    // Enable interrupts on this processor.
+    sti();
+    struct proc *highP;
+    // Loop over process table looking for process to run.
+    acquire(&ptable.lock);
+    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+      if(p->state != RUNNABLE)
+        continue;
+
+      // Switch to chosen process.  It is the process's job
+      // to release ptable.lock and then reacquire it
+      // before jumping back to us.
+      highP = p;
+      //choose one with highest priority
+      for(p1 = ptable.proc; p1 < &ptable.proc[NPROC]; p1++){
+	if(p1->state != RUNNABLE)
+	  continue;
+	if(highP->priority > p1->priority)   //larger value, lower priority
+	  highP = p1;
+      }
+      p = highP;
+      c->proc = p;
+      switchuvm(p);
+      p->state = RUNNING;
+
+      swtch(&(c->scheduler), p->context);
+      switchkvm();
+
+      // Process is done running for now.
+      // It should have changed its p->state before coming back.
+      c->proc = 0;
+    }
+    release(&ptable.lock);
+
+  }
+}
+
+Lab Results:
+
+Task 1:
+$ ps
+name     pid     state   priority
+init     1       SLEEPING        10
+ sh      2       SLEEPING        10
+ ps      3       RUNNING         10
+ $
+
+
+Task 2:
+ Before changing nice value:
+ $ lab3test 4 &
+$ Child 6 created
+Parent 5 creating child 6
+ps
+name     pid     state   priority
+init     1       SLEEPING        10
+ sh      2       SLEEPING        10
+ lab3test        6       RUNNING         20
+ lab3test        5       SLEEPING        10
+ ps      7       RUNNING         10
+ $
+
+
+After changing nice value:
+ $ nice 5 18
+$ ps
+name     pid     state   priority
+init     1       SLEEPING        10
+ sh      2       SLEEPING        10
+ lab3test        6       RUNNING         20
+ lab3test        5       SLEEPING        18
+ ps      9       RUNNING         10
+ $
+
+Task 3:
+
+Modified lab3test.c so that the parent process waits for the children to finish. This is done so that the round robin scheduling can be observed with cps.
+
+---Commands---
+$ lab3test &; lab3test &; lab3test &
+$ Parent 5 creating child 9
+Child 9 created
+Parent 7 creaCting child 10
+hild 10 created
+PChild 11 created
+arent 8 creating child 11
+ps
+name 	 pid 	 state 	 priority 	 
+init 	 1 	 SLEEPING 	 10 	 
+sh 	 2 	 SLEEPING 	 10 	 
+lab3test 	 9 	 RUNNABLE 	 20 	
+lab3test 	 8 	 SLEEPING 	 10 	 
+lab3test 	 5 	 SLEEPING 	 10 	 
+lab3test 	 7 	 SLEEPING 	 10 	 
+lab3test 	 10 	 RUNNING 	 20 	 
+lab3test 	 11 	 RUNNABLE 	 20 	
+ps 	 12 	 RUNNING 	 10 	 
+$ ps
+name 	 pid 	 state 	 priority 	 
+init 	 1 	 SLEEPING 	 10 	 
+sh 	 2 	 SLEEPING 	 10 	 
+lab3test 	 9 	 RUNNABLE 	 20 	
+lab3test 	 8 	 SLEEPING 	 10 	 
+lab3test 	 5 	 SLEEPING 	 10 	 
+lab3test 	 7 	 SLEEPING 	 10 	 
+lab3test 	 10 	 RUNNABLE 	 20 	
+lab3test 	 11 	 RUNNING 	 20 	 
+ps 	 13 	 RUNNING 	 10 	 
+$ ps
+name 	 pid 	 state 	 priority 	 
+init 	 1 	 SLEEPING 	 10 	 
+sh 	 2 	 SLEEPING 	 10 	 
+lab3test 	 9 	 RUNNABLE 	 20 	
+lab3test 	 8 	 SLEEPING 	 10 	 
+lab3test 	 5 	 SLEEPING 	 10 	 
+lab3test 	 7 	 SLEEPING 	 10 	 
+lab3test 	 10 	 RUNNING 	 20 	 
+lab3test 	 11 	 RUNNABLE 	 20 	
+ps 	 14 	 RUNNING 	 10 	 
+$ ps
+name 	 pid 	 state 	 priority 	 
+init 	 1 	 SLEEPING 	 10 	 
+sh 	 2 	 SLEEPING 	 10 	 
+lab3test 	 9 	 RUNNABLE 	 20 	
+lab3test 	 8 	 SLEEPING 	 10 	 
+lab3test 	 5 	 SLEEPING 	 10 	 
+lab3test 	 7 	 SLEEPING 	 10 	 
+lab3test 	 10 	 RUNNABLE 	 20 	
+lab3test 	 11 	 RUNNING 	 20 	 
+ps 	 15 	 RUNNING 	 10 	 
+
+When you run the first command you are creating 3 child processes indicated by the RUNNABLE/RUNNING label.
+As you can see by the outputs of the ps commands the process that is running changes meaning the CPU is doing 
+some context switching and scheduling different processes.
+
+Task 4:
+
+ lab3test &; lab3test &; lab3test&
+Parent 12 creating child 13
+Child 13 created
+Parent 15 creating child 17
+Child 17 created
+$ Parent 16 creating child 18
+Child 18 created
+ps
+name     pid     state   priority
+init     1       SLEEPING        10
+ sh      2       SLEEPING        10
+ lab3test        6       RUNNABLE        20
+ lab3test        5       SLEEPING        18
+ lab3test        18      RUNNABLE        20
+ lab3test        16      SLEEPING        10
+ lab3test        12      SLEEPING        10
+ lab3test        13      RUNNABLE        20
+ lab3test        15      SLEEPING        10
+ lab3test        17      RUNNING         20
+ ps      19      RUNNING         10
+ $ ps
+name     pid     state   priority
+init     1       SLEEPING        10
+ sh      2       SLEEPING        10
+ lab3test        6       RUNNABLE        20
+ lab3test        5       SLEEPING        18
+ lab3test        18      RUNNABLE        20
+ lab3test        16      SLEEPING        10
+ lab3test        12      SLEEPING        10
+ lab3test        13      RUNNABLE        20
+ lab3test        15      SLEEPING        10
+ lab3test        17      RUNNING         20
+ ps      20      RUNNING         10
+ $
+Above you can see how processes with higher priority are being ran ahead of processes with lower priority.
+
+
+
+---------------------Jonathan Carsten’s time log--------------------------
+ESTIMATE of time to complete lab : 5 hours
+      Start  Time   Lab
+Date  Time   Spent  Part  Work Completed
+----  ----   ----   ----  --------------
+10/13 02:40  0:30   1     Completed Task 1 (added ps system call)
+10/13 03:10  1:20   3     studied scheduling code and modified exec.c and lab3test.c
+10/13 04:30  0:30   3     ran tests for round robin scheduling and observed results
+      ---- 
+      2:20 TOTAL time spent
+
+Note: Me and my partner agreed that I would do the odd tasks and he would do the even tasks.
+      We planned on asking each other for help if it was needed. 
+
+The biggest problem I ran into was when I was testing the round robin scheduling. 
+I often got the same process in the RUNNING state when I ran ps. This made me think
+that there was some problem with the scheduler. Upon closer look I just needed to run ps
+more times, then I could see that it was scheduling properly.
+
+---------------------Julian Garcia’s time log--------------------------
+ESTIMATE of time to complete lab: 7 hours
+
+Date    StartTime  EndTime    Hours  Work completed
+----          -----           ----            ----      ---------
+10/10    12:00         8:00            1       Read assignment
+10/13    7:00           11:00          2       Completed 2nd part of lab
+10/14    7:00           11:00          4       Completed 4th part of lab
+        -----
+7hrs    TOTAL time spent
+
+This lab felt very similar to lab 2, and so wasn’t very difficult to complete, as we were simply editing xv6 again. 
+The only issues came from creating the priority based scheduler, as implementing that algorithm by itself takes 
+a minute to get your head around and implementing it in xv6 is a whole other issue.
+

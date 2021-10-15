@@ -596,8 +596,9 @@ procdump(void)
   }
 }
 
-//Add this in the end of the proc.c file
-int cps()
+
+int
+ps()
 {
 struct proc *p;
 //Enables interrupts on this processor.
@@ -619,7 +620,7 @@ return 22;
 }
 
 int
-chpr(int pid, int priority)
+nice(int pid, int priority)
 {
 	struct proc *p;
 	acquire(&ptable.lock);

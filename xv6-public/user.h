@@ -24,8 +24,8 @@ char* sbrk(int);
 int sleep(int);
 int uptime(void);
 //My Addition
-int cps(void);
-int chpr(int pid, int priority);
+int ps(void);
+int nice(int pid, int priority);
 
 //My functions for setting or getting priority
 int setpr(int, int);
