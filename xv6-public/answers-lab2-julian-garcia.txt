@@ -1,0 +1,45 @@
+CSE 325
+Lab 2
+Julian Garcia
+Summary of Lab 1
+
+Part 1
+Added an array corresponding to the number and system call name in syscall.c file
+Then all I had to do was add a corresponding cprintf to the syscall function.
+
+Part 2
+1. Made default priority in allocproc() in proc.c
+p->pid = nextpid++;
+p->priority = 10; //default priority
+Also added priority parameter in struct proc in proc.h
+
+2. Created lab2test.c function
+3. Added function setpr to change priority in proc.c
+4. Added sys_setpr in sysproc.c
+
+5. Added setpr to system calls by these steps:
+1. Added this in syscall.h
+#define SYS_setpr 22
+2. Added this to defs.h
+int setpr(int pid, int priority );
+3. Added this to user.h
+int setpr(int,int);
+4. Added this in usys.S
+SYSCALL(setpr)
+5. Added some references in syscall.c
+extern int sys_setpr (void);
+[SYS_setpr] sys_setpr,
+[SYS_setpr] "setpr"
+Followed these same steps for getpr
+
+6. Edited the makefile to include our changes and commands in XV6.
+
+ESTIMATE of time to complete lab: 12 hours (?)
+Start    Time    Lab
+Date    Time     Spent Part Work completed
+----    -----    ----    ---- ---------
+2/11    12:00   8:00    1       Read assignment, completed the first part of the lab, began second part
+2/12    7:00    11:00    4       Completed the second part of the lab
+        -----
+10:00    TOTAL time spent
+Most of the difficulties encountered with this lab just came from understanding exactly what everything was doing, and where to insert my code. The xv6 code is thankfully full of comments that told me what was happening and helped give me enough clues to figure out what was happening syntaxtually in certain places. I got mainly hung up on inserting my syscall for getting the priority in syscall.c, thinking I could just follow the format of the other functions and plug and play, that wasn’t the case, and I realized I had to go to proc.c to actually write a function that would handle the work. Things went very smooth up until that point though, since most of my coding was really just following the format of what was already written up until then. After that point, things slowed down as I had to actually test my code and write a file that could test things for me, which is where I had to actually think for myself really instead of just following what was already in the xv6 code.
