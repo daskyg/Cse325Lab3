@@ -99,6 +99,7 @@ exec(char *path, char **argv)
   curproc->sz = sz;
   curproc->tf->eip = elf.entry;  // main
   curproc->tf->esp = sp;
+  curproc->nice = 10;
   curproc->priority = 10; // set the nice value to 10
   switchuvm(curproc);
   freevm(oldpgdir);
