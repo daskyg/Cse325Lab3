@@ -1,0 +1,185 @@
+Lab Methods:
+Task1 & Task 2:
+Added two system calls to syscall.h:
+#define SYS_cps    22
+#define SYS_chpr   23
+
+In the struct proc in the proc.h file, add a new attribute ‘priority’, to represent nice number.
+Added sys calls to defs.h and user.h
+//Inside proc.c
+int		cps(void);
+int 		chpr(int pid, int priority);
+
+//Inside the system calls section in users.h
+int cps(void);
+int chpr(int pid, int priority);
+
+Included the definition of the cps and chpr functions in proc.c
+
+In sysproc.c, defined  a function in which our cps and chpr functions will be called:
+int sys_cps(void)
+{
+  return cps();
+}
+
+int sys_chpr(void)
+{
+  int pid, pr;
+  if(argint(0, &pid) < 0)
+    return -1;
+  if(argint(1, &pr) < 0)
+    return -1;
+
+  return chpr(pid, pr);
+}
+
+Added changes in the usys.S file:
+SYSCALL(cps)
+SYSCALL(chpr)
+
+Add the two system calls to sysproc.c:
+//This is where other system calls are defined in syscall.c
+extern int sys_cps(void);
+extern int sys_chpr(void);
+
+//This is inside static int (*syscalls[])(void)
+[SYS_cps]     sys_cps,
+[SYS_chpr]    sys_chpr,
+
+Edited  the allocproc function in proc.c, to assign default priority:
+
+found:
+  p->state = EMBRYO;
+  p->pid = nextpid++;
+  p->priority = 10;  //Default Priority of a process is set to be 10
+
+
+Next, we created the ps.c and nice.c file in which our cps and chpr functions are called
+
+Made changes to makefile, added following under UPROGS section
+_ps\ 
+_lab3test\ 
+_nice\
+
+Task 3:
+Modified lab3Test.c (?):
+
+
+Task 4:
+To accomplish the functionality of this section the scheduler function in proc.c will be replaced with the one below for priority round robin scheduling
+
+void
+scheduler(void)
+{
+  struct proc *p, *p1;
+  struct cpu *c = mycpu();
+  c->proc = 0;
+  
+  for(;;){
+    // Enable interrupts on this processor.
+    sti();
+    struct proc *highP;
+    // Loop over process table looking for process to run.
+    acquire(&ptable.lock);
+    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+      if(p->state != RUNNABLE)
+        continue;
+
+      // Switch to chosen process.  It is the process's job
+      // to release ptable.lock and then reacquire it
+      // before jumping back to us.
+      highP = p;
+      //choose one with highest priority
+      for(p1 = ptable.proc; p1 < &ptable.proc[NPROC]; p1++){
+	if(p1->state != RUNNABLE)
+	  continue;
+	if(highP->priority > p1->priority)   //larger value, lower priority
+	  highP = p1;
+      }
+      p = highP;
+      c->proc = p;
+      switchuvm(p);
+      p->state = RUNNING;
+
+      swtch(&(c->scheduler), p->context);
+      switchkvm();
+
+      // Process is done running for now.
+      // It should have changed its p->state before coming back.
+      c->proc = 0;
+    }
+    release(&ptable.lock);
+
+  }
+}
+
+Lab Results:
+
+Task 1:
+ps
+ --> 5
+ --> 5
+ --> 5
+fork --> 1
+sbrk --> 12
+exec --> 7
+3 ps: unknown sys call 24
+wait --> 3
+$write --> 16
+ write --> 16
+
+	Task 2:
+ Before changing nice value:
+	ps
+ --> 5
+ --> 5
+ --> 5
+fork --> 1
+sbrk --> 12
+exec --> 7
+10 ps: unknown sys call 24
+wait --> 3
+$write --> 16
+ write --> 16
+
+After changing nice value:
+		Ps
+ --> 5
+ --> 5
+ --> 5
+fork --> 1
+sbrk --> 12
+exec --> 7
+12 ps: unknown sys call 24
+wait --> 3
+$write --> 16
+ write --> 16
+
+
+Task 3:
+
+Task 4:
+
+
+
+
+
+
+
+
+
+
+
+---------------------Julian Garcia’s time log--------------------------
+ESTIMATE of time to complete lab: 7 hours
+
+Date    StartTime  EndTime    Hours  Work completed
+----          -----           ----            ----      ---------
+10/10    12:00         8:00            1       Read assignment
+10/13    7:00           11:00          2       Completed 2nd part of lab
+10/14    7:00           11:00          4       Completed 4th part of lab
+        -----
+7hrs    TOTAL time spent
+
+This lab felt very similar to lab 2, and so wasn’t very difficult to complete, as we were simply editing xv6 again. The only issues came from creating the priority based scheduler, as implementing that algorithm by itself takes a minute to get your head around and implementing it in xv6 is a whole other issue.
+
